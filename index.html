@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+    <script type="text/javascript" src="js/phaser.min.js"></script>
+</head>
+<body>
+
+<script type="text/javascript">
+
+    // initiate the game
+    // x, y, rendering context, DOM element to attach to
+    // followed by 4 essential Phaser functions
+    // these 4 are then mapped to functions below
+    var game = new Phaser.Game(640, 480, Phaser.AUTO, '',
+            {preload: preload, create: create, update: update});
+
+    var platforms;
+    var player;
+    var cursors;
+    var slimes;
+
+    var score = 0;
+    var scoreText;
+
+    function preload() {
+        loadAssets();
+    }
+
+    function loadAssets() {
+        // alias, path, x, y dimension
+        game.load.spritesheet('player', 'assets/sprites/hero-transparent-borderless.png', 28, 28);
+        game.load.spritesheet('slime', 'assets/sprites/slime-transparent-set.png', 28, 28);
+
+        // load images
+        game.load.image('bg', 'assets/bg/wall.png');
+        game.load.image('ground', 'assets/bg/ground.png');
+        // game.load.image('slime', 'assets/sprites/slime-transparent.png');
+    }
+
+    function create() {
+
+        // activate physics engine
+        game.physics.startSystem(Phaser.Physics.ARCADE);
+
+        // set the 'bg' object and repeat it across the screen
+        // start x, y, size x, y, reference
+        game.add.tileSprite(0, 0, 640, 480, 'bg');
+        // loading of assets is sequential and determines their z-index
+
+        // create a generic platform group
+        platforms = game.add.group();
+
+        // enables physics to members of group
+        platforms.enableBody = true;
+
+        var ground = game.add.tileSprite(0, game.world.height - 16, 640, 16, 'ground');
+
+
+        platforms.add(ground);
+
+        // start x, y, size x, y, reference
+        var ledge1;
+        ledge1 = game.add.tileSprite(0, 400, 128, 16, 'ground');
+        platforms.add(ledge1);
+
+        var ledge2 = game.add.tileSprite(200, 400, 128, 16, 'ground');
+        //        ledge2.body.collideWorldBounds = true;
+        //        ledge2.body.immovable = true;
+        //        ledge2.body.allowGravity = false;
+        platforms.add(ledge2);
+
+        // add the player
+        player = game.add.sprite(0, 0, 'player');
+
+
+        slimes = game.add.group();
+        slimes.enableBody = true;
+
+        for (var i = 0; i < 10; i++) {
+            var slime = slimes.create(i * 50, 0, 'slime');
+            slime.body.gravity.y = 800;
+            slime.body.bounce.y = 0.7 + Math.random() * 0.2;
+            slime.body.collideWorldBounds = true;
+        }
+
+        // give elements physics capabilities
+        // enable physics FIRST, then define the actual behavior
+        // declare, enable, set!
+        game.physics.enable([ player, platforms, slimes], Phaser.Physics.ARCADE);
+
+        player.body.bounce.y = 0.2;
+        player.body.gravity.y = 800;
+        player.body.collideWorldBounds = true;
+
+        platforms.forEach(function (item) {
+            item.body.collideWorldBounds = true;
+            item.body.immovable = true;
+            item.body.allowGravity = false;
+        }, this);
+
+        slimes.forEach(function (item) {
+            item.animations.add('idle', [0, 1, 2, 3, 4], 5, true);
+            item.animations.play('idle');
+        }, this);
+
+        // give the player animation
+        //  Our two animations, walking left and right.
+        player.animations.add('left', [5, 6, 7, 8, 9], 10, true);
+        player.animations.add('right', [0, 1, 2, 3, 4], 10, true);
+
+        cursors = game.input.keyboard.createCursorKeys();
+
+        scoreText = game.add.text(8, 8, 'Score: 0', { fontSize: '32px', fill: '#FFF' });
+
+    }
+
+    function update() {
+        // collides things
+        game.physics.arcade.collide(player, platforms);
+        game.physics.arcade.collide(slimes, platforms);
+        game.physics.arcade.collide(slimes, player);
+        game.physics.arcade.collide(slimes, slimes, collideSlimes);
+        handlePlayerMovement();
+    }
+
+    function collideSlimes(slime1, slime2) {
+        slime2.kill();
+
+        score += 10;
+        scoreText.text = 'Score: ' + score;
+    }
+
+    function handlePlayerMovement() {
+        //  Reset the players velocity (movement)
+        player.body.velocity.x = 0;
+        if (cursors.left.isDown) {
+            //  Move to the left
+            player.body.velocity.x = -150;
+            player.animations.play('left');
+        }
+        else if (cursors.right.isDown) {
+            //  Move to the right
+            player.body.velocity.x = 150;
+            player.animations.play('right');
+        }
+        else {
+            //  Stand still
+            player.animations.stop();
+            // set this if you want to reset the 'stance' of the player: player.frame = 4;
+        }
+
+        //  Allow the player to jump if they are touching the ground.
+        if (cursors.up.isDown && player.body.touching.down) {
+            player.body.velocity.y = -350;
+        }
+
+    }
+
+</script>
+
+</body>
+</html>
