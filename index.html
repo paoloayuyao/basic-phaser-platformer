@@ -54,7 +54,7 @@ function create() {
 
     // set the 'bg' object and repeat it across the screen
     // start x, y, size x, y, reference
-    game.add.tileSprite(0, 0, 640, 480, 'bg');
+    // game.add.tileSprite(0, 0, 640, 480, 'bg');
     // loading of assets is sequential and determines their z-index
 
     bullets = game.add.group();
@@ -89,7 +89,7 @@ function create() {
     slimes = game.add.group();
     slimes.enableBody = true;
 
-    for (var i = 0; i < 10; i++) {
+    for (var i = 0; i < 9; i++) {
         var slime = new Slime(game, i * 128, i * 32, 50);
         slimes.add(slime);
     }
@@ -229,29 +229,55 @@ Slime.prototype.constructor = Slime;
 
 Slime.prototype.update = function () {
 
-    game.physics.arcade.collide(this, platforms, function (slime, platform) {
+    var chasing = false;
 
-        // if slime is moving to the right, check if his position is greater than half of the platforms width going to the right
-        if (slime.body.velocity.x > 0 && slime.x > platform.x + (platform.width - slime.width) ||
-            // if slime is moving to the left, check if his position is
-                slime.body.velocity.x < 0 && slime.x < platform.x) {
-            slime.body.velocity.x *= -1;
-
-        }
-
-        if (slime.body.velocity.x > 0) {
-            // this.animations.stop();
-            slime.animations.play('right');
+    // check if the slime's y position on the map is equal to the player's y position
+    // we use Math.round to ignore the decimal
+    if (Math.round(this.y) == Math.round(player.y)) {
+        // if both slime and player are on the same 'plane' move towards the player!
+        if (Math.round(player.x) > Math.round(this.x)) {
+            // we increase the speed from the default 80 to 200
+            this.body.velocity.x = 200;
         } else {
-            //this.animations.stop();
-            slime.animations.play('left');
+            this.body.velocity.x = -200;
         }
+        chasing = true;
+    }
 
+    if(!chasing){
+        // when the slime isn't actively chasing the player,
+        // reduce speeds back to normal
+        if(this.body.velocity.x > 0){
+            this.body.velocity.x = 80;
+        } else if(this.body.velocity.x < 0){
+            this.body.velocity.x = -80;
+        }
+    }
+
+    game.physics.arcade.collide(this, platforms, function (slime, platform) {
+        if (slime.body.velocity.x > 0 && slime.x > platform.x + (platform.width - slime.width) ||
+                slime.body.velocity.x < 0 && slime.x < platform.x) {
+            // this is still the old platform patrol AI from before
+            // we added the chasing check so the slime will stop at the edge closest to the player
+            if (chasing) {
+                slime.body.velocity.x = 0;
+            } else {
+                slime.body.velocity.x *= -1;
+            }
+        }
     });
 
     game.physics.arcade.collide(this, slimes, function (slime, slimes) {
-        slime.body.velocity.x *= -1.0001;
+        slime.body.velocity.x *= -1;
     });
+
+    if (this.body.velocity.x > 0) {
+        // this.animations.stop();
+        this.animations.play('right');
+    } else {
+        //this.animations.stop();
+        this.animations.play('left');
+    }
 
 };
 
